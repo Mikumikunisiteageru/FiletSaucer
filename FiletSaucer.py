@@ -175,9 +175,9 @@ def doRenameBatch(ui, num):
     try:
         prefix = renameBatch(ui, num)
         if prefix == "":
-            ui.plainTextEdit.setPlaceholderText(f"[{now}] MOVED {num} FILES.")
+            ui.plainTextEdit.setPlaceholderText(f"[{now}] MOVED {num} FILE.")
         else:
-            ui.plainTextEdit.setPlaceholderText(f"[{now}] ADDED \"{prefix}\" TO {num} FILES.")
+            ui.plainTextEdit.setPlaceholderText(f"[{now}] ADDED \"{prefix}\" TO {num} FILE{'S' if num > 1 else ''}.")
         ui.plainTextEdit.clear()
     except Exception as e:
         ui.plainTextEdit.setPlaceholderText(f"ERROR: {e.args[0]}!")
