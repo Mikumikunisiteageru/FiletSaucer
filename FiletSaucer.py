@@ -160,8 +160,9 @@ def addPrefix(ui, filename, prefix):
     else:
         newName = os.path.join(pathTarget, prefix + "_" + name)
     if os.path.isfile(newName):
-        raise Exception("file exists")
-    shutil.move(filename, newName)
+        os.remove(filename)
+    else:
+        shutil.move(filename, newName)
     print(newName)
 
 def renameBatch(ui, num):
