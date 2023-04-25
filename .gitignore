@@ -1,0 +1,9 @@
+# .gitignore
+
+__pycache__/
+build/
+dist/
+
+virtualenv/
+
+FiletSaucer_config.ini
