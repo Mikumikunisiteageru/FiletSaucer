@@ -1,9 +1,18 @@
 # FiletSaucer.py
 
-VERSION = "v0.2.0"
-DATE = "20230425"
+NAME = "FiletSaucer"
+VERSION = "0.2.0"
+REPOSITORY = "https://github.com/Mikumikunisiteageru/FiletSaucer"
 
+CONFIG = "FiletSaucer_config.ini"
+
+import datetime
+import glob
+import os
+import re
+import shutil
 import sys
+import time
 from PyQt5 import QtCore, QtWidgets
 
 class Ui_MainWindow(object):
@@ -12,9 +21,9 @@ class Ui_MainWindow(object):
         MainWindow.resize(200, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.textEdit = QtWidgets.QTextEdit(self.centralwidget)
-        self.textEdit.setGeometry(QtCore.QRect(0, 0, 200, 126))
-        self.textEdit.setObjectName("textEdit")
+        self.plainTextEdit = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.plainTextEdit.setGeometry(QtCore.QRect(0, 0, 200, 126))
+        self.plainTextEdit.setObjectName("plainTextEdit")
         self.widget = QtWidgets.QWidget(self.centralwidget)
         self.widget.setGeometry(QtCore.QRect(0, 126, 200, 474))
         self.widget.setObjectName("widget")
@@ -73,7 +82,6 @@ class Ui_MainWindow(object):
         self.pushButton_18.setGeometry(QtCore.QRect(165, 431, 35, 43))
         self.pushButton_18.setObjectName("pushButton_18")
         MainWindow.setCentralWidget(self.centralwidget)
-
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -99,19 +107,81 @@ class Ui_MainWindow(object):
         self.pushButton_17.setText(_translate("MainWindow", "17"))
         self.pushButton_18.setText(_translate("MainWindow", "18"))
 
-CONFIG = "FiletSaucer_config.ini"
-
-POSITION_X = 10
-POSITION_Y = 200
+def getValue(settings, key, default):
+    value = settings.value(key)
+    if value == None:
+        return default
+    else:
+        return value
 
 def readSettings(ui):
     ui.settings = QtCore.QSettings(CONFIG, QtCore.QSettings.IniFormat)
+    ui.filePattern = getValue(ui.settings, "FILE/pattern", ".*")
+    ui.pathSource = getValue(ui.settings, "PATH/source", ".")
+    ui.pathTarget = getValue(ui.settings, "PATH/target", ".")
+    ui.position = getValue(ui.settings, "WINDOW/position", QtCore.QPoint(10, 200))
+    ui.regexes = []
+    i = 0
+    while True:
+        i += 1
+        s = getValue(ui.settings, f"REGEX/s_{i}", None)
+        t = getValue(ui.settings, f"REGEX/t_{i}", None)
+        if s == None or t == None:
+            break
+        ui.regexes.append((s, t))
+    print(ui.regexes)
+
+def getPrefix(ui):
+    prefix = ui.plainTextEdit.toPlainText().strip()
+    for (s, t) in ui.regexes:
+        prefix = re.sub(s, t, prefix)
+    return prefix
+
+def matchesPattern(ui, filename):
+    body = os.path.split(filename)[-1]
+    return re.match(ui.filePattern, body) != None
+
+def getLatestFiles(ui, num):
+    path = ui.pathSource
+    files = glob.glob(os.path.join(path, "*"))
+    newestFiles = sorted(files, key=os.path.getctime, reverse=True)[:num]
+    if all(matchesPattern(ui, f) for f in newestFiles):
+        return newestFiles
+    else:
+        raise Exception("wrong files")
+
+def addPrefix(ui, filename, prefix):
+    _, name = os.path.split(filename)
+    pathTarget = os.path.join(ui.pathTarget, datetime.date.today().strftime("%Y%m"))
+    if not os.path.isdir(pathTarget):
+        raise Exception("wrong target path")
+    if prefix == "":
+        newName = os.path.join(pathTarget, name)
+    else:
+        newName = os.path.join(pathTarget, prefix + "_" + name)
+    if os.path.isfile(newName):
+        raise Exception("file exists")
+    shutil.move(filename, newName)
+    print(newName)
+
+def renameBatch(ui, num):
+    prefix = getPrefix(ui)
+    for file in getLatestFiles(ui, num):
+        addPrefix(ui, file, prefix)
+    return prefix
+
+def doRenameBatch(ui, num):
+    now = datetime.datetime.now().strftime("%H%M%S")
     try:
-        position = ui.settings.value("WINDOW/position")
-        assert isinstance(position, QtCore.QPoint)
-        ui.position = position
-    except:
-        ui.position = QtCore.QPoint(POSITION_X, POSITION_Y)
+        prefix = renameBatch(ui, num)
+        if prefix == "":
+            ui.plainTextEdit.setPlaceholderText(f"[{now}] MOVED {num} FILES.")
+        else:
+            ui.plainTextEdit.setPlaceholderText(f"[{now}] ADDED \"{prefix}\" TO {num} FILES.")
+        ui.plainTextEdit.clear()
+    except Exception as e:
+        ui.plainTextEdit.setPlaceholderText(f"ERROR: {e.args[0]}!")
+        ui.plainTextEdit.clear()
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
@@ -123,4 +193,22 @@ if __name__ == "__main__":
     mainWindow.move(ui.position)
     mainWindow.setFixedSize(mainWindow.width(), mainWindow.height())
     mainWindow.show()
+    ui.pushButton_01.clicked.connect(lambda: doRenameBatch(ui, 1))
+    ui.pushButton_02.clicked.connect(lambda: doRenameBatch(ui, 2))
+    ui.pushButton_03.clicked.connect(lambda: doRenameBatch(ui, 3))
+    ui.pushButton_04.clicked.connect(lambda: doRenameBatch(ui, 4))
+    ui.pushButton_05.clicked.connect(lambda: doRenameBatch(ui, 5))
+    ui.pushButton_06.clicked.connect(lambda: doRenameBatch(ui, 6))
+    ui.pushButton_07.clicked.connect(lambda: doRenameBatch(ui, 7))
+    ui.pushButton_08.clicked.connect(lambda: doRenameBatch(ui, 8))
+    ui.pushButton_09.clicked.connect(lambda: doRenameBatch(ui, 9))
+    ui.pushButton_10.clicked.connect(lambda: doRenameBatch(ui, 10))
+    ui.pushButton_11.clicked.connect(lambda: doRenameBatch(ui, 11))
+    ui.pushButton_12.clicked.connect(lambda: doRenameBatch(ui, 12))
+    ui.pushButton_13.clicked.connect(lambda: doRenameBatch(ui, 13))
+    ui.pushButton_14.clicked.connect(lambda: doRenameBatch(ui, 14))
+    ui.pushButton_15.clicked.connect(lambda: doRenameBatch(ui, 15))
+    ui.pushButton_16.clicked.connect(lambda: doRenameBatch(ui, 16))
+    ui.pushButton_17.clicked.connect(lambda: doRenameBatch(ui, 17))
+    ui.pushButton_18.clicked.connect(lambda: doRenameBatch(ui, 18))
     sys.exit(app.exec_())
