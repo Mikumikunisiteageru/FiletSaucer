@@ -193,6 +193,7 @@ if __name__ == "__main__":
     readSettings(ui)
     mainWindow.move(ui.position)
     mainWindow.setFixedSize(mainWindow.width(), mainWindow.height())
+    ui.plainTextEdit.setPlaceholderText(f"{NAME} {VERSION}")
     mainWindow.show()
     ui.pushButton_01.clicked.connect(lambda: doRenameBatch(ui, 1))
     ui.pushButton_02.clicked.connect(lambda: doRenameBatch(ui, 2))
