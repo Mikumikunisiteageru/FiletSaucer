@@ -1,7 +1,7 @@
 # FiletSaucer.py
 
 NAME = "FiletSaucer"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 REPOSITORY = "https://github.com/Mikumikunisiteageru/FiletSaucer"
 
 CONFIG = "FiletSaucer_config.ini"
@@ -12,7 +12,6 @@ import os
 import re
 import shutil
 import sys
-import time
 from PyQt5 import QtCore, QtWidgets
 
 class Ui_MainWindow(object):
@@ -117,6 +116,7 @@ def getValue(settings, key, default):
 def readSettings(ui):
     ui.settings = QtCore.QSettings(CONFIG, QtCore.QSettings.IniFormat)
     ui.filePattern = getValue(ui.settings, "FILE/pattern", ".*")
+    ui.fileHeadLength = int(getValue(ui.settings, "FILE/headlength", "0"))
     ui.pathSource = getValue(ui.settings, "PATH/source", ".")
     ui.pathTarget = getValue(ui.settings, "PATH/target", ".")
     ui.position = getValue(ui.settings, "WINDOW/position", QtCore.QPoint(10, 200))
@@ -141,14 +141,20 @@ def matchesPattern(ui, filename):
     body = os.path.split(filename)[-1]
     return re.match(ui.filePattern, body) != None
 
+def allHeadsSame(newestFiles, headLength=0):
+    heads = [os.path.split(file)[1][:headLength] for file in newestFiles]
+    return len(set(heads)) == 1
+
 def getLatestFiles(ui, num):
     path = ui.pathSource
     files = glob.glob(os.path.join(path, "*"))
     newestFiles = sorted(files, key=os.path.getctime, reverse=True)[:num]
-    if all(matchesPattern(ui, f) for f in newestFiles):
-        return newestFiles
-    else:
+    if not all(matchesPattern(ui, f) for f in newestFiles):
         raise Exception("wrong files")
+    elif not allHeadsSame(newestFiles, ui.fileHeadLength):
+        raise Exception("file heads not matched")
+    else:
+        return newestFiles
 
 def addPrefix(ui, filename, prefix):
     _, name = os.path.split(filename)
@@ -181,7 +187,7 @@ def doRenameBatch(ui, num):
             ui.plainTextEdit.setPlaceholderText(f"[{now}] ADDED \"{prefix}\" TO {num} FILE{'S' if num > 1 else ''}.")
         ui.plainTextEdit.clear()
     except Exception as e:
-        ui.plainTextEdit.setPlaceholderText(f"ERROR: {e.args[0]}!")
+        ui.plainTextEdit.setPlaceholderText(f"ERROR: {e.args}!")
         ui.plainTextEdit.clear()
 
 if __name__ == "__main__":
